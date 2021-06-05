@@ -1,22 +1,22 @@
 { lib, stdenv, llvmPackages }:
 
 let
-  unwrapped = llvmPackages.clang-unwrapped;
+  clang = llvmPackages.clang-unwrapped;
 
 in stdenv.mkDerivation {
   pname = "clang-tools";
-  version = lib.getVersion unwrapped;
+  version = lib.getVersion clang;
 
   dontUnpack = true;
-
-  clang = llvmPackages.clang;
-  inherit unwrapped;
 
   installPhase = ''
     runHook preInstall
 
     mkdir -p $out/bin
+    export libc_includes="${lib.getDev stdenv.cc.libc}/include"
+    export libcpp_includes="${llvmPackages.libcxx}/include/c++/v1"
 
+    export clang=${clang}
     substituteAll ${./wrapper} $out/bin/clangd
     chmod +x $out/bin/clangd
     for tool in \
@@ -32,7 +32,7 @@ in stdenv.mkDerivation {
     runHook postInstall
   '';
 
-  meta = unwrapped.meta // {
+  meta = clang.meta // {
     description = "Standalone command line tools for C++ development";
     maintainers = with lib.maintainers; [ aherrmann ];
   };
